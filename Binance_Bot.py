@@ -16,6 +16,10 @@ def bot_1min(target):
 
     avg_data = moving_24h_data(target)
     curr_data = most_recent_data(target, "1min")
+
+    if avg_data[1] < 0:
+        buy_multiplier = 8
+        sell_multiplier = 6
     
     avg_1min_vol = avg_data[0] / 24 / 60
     # avg_1min_change = avg_data[1] / 24 / 60
@@ -24,21 +28,23 @@ def bot_1min(target):
     curr_1min_change = curr_data[1]
 
     if curr_1min_vol >= avg_1min_vol * buy_multiplier and curr_1min_change > 0:
+        print("1 min bot @ "+ str(datetime.datetime.now()) + ": vol " + str(curr_1min_vol) + ", avg vol " + str(avg_1min_vol))
         all_in(target)
-        print(datetime.datetime.now())
-        print("curr 1min vol " + str(curr_1min_vol) + ", avg vol " + str(avg_1min_vol)) 
         
     if curr_1min_vol >= avg_1min_vol * sell_multiplier and curr_1min_change < 0: 
+        print("1 min bot @ "+ str(datetime.datetime.now()) + ": vol " + str(curr_1min_vol) + ", avg vol " + str(avg_1min_vol))
         all_out(target)
-        print(datetime.datetime.now())
-        print("curr 1min vol " + str(curr_1min_vol) + ", avg vol " + str(avg_1min_vol))
 
 def bot_5min(target):
     buy_multiplier = 5
     sell_multiplier = 4
 
     avg_data = moving_24h_data(target)
-    curr_data = most_recent_data(target, "5min")
+    curr_data = moving_5min_data(target)
+
+    if avg_data[1] < 0:
+        buy_multiplier = 6
+        sell_multiplier = 5
     
     avg_5min_vol = avg_data[0] / 24 / 60 * 5
     # avg_5min_change = avg_data[1] / 24 / 60 * 5
@@ -46,13 +52,13 @@ def bot_5min(target):
     curr_5min_vol = curr_data[0]
     curr_5min_change = curr_data[1]
 
-    if curr_5min_vol >= avg_5min_vol * buy_multiplier and curr_5min_change > 0.30:
+    if curr_5min_vol >= avg_5min_vol * buy_multiplier and curr_5min_change > 0.25:
+        print("5 min bot @ "+ str(datetime.datetime.now()) + ": vol " + str(curr_5min_vol) + ", avg vol " + str(avg_5min_vol))
         all_in(target)
-        print("curr 5min vol " + str(curr_5min_vol) + ", avg vol " + str(avg_5min_vol))
               
-    if curr_5min_vol >= avg_5min_vol * sell_multiplier and curr_5min_change < -0.25: 
+    if curr_5min_vol >= avg_5min_vol * sell_multiplier and curr_5min_change < -0.20:
+        print("5 min bot @ "+ str(datetime.datetime.now()) + ": vol " + str(curr_5min_vol) + ", avg vol " + str(avg_5min_vol)) 
         all_out(target)
-        print("curr 5min vol " + str(curr_5min_vol) + ", avg vol " + str(avg_5min_vol))
               
 # this is stupid
 def most_recent_data(target, time_interval):
@@ -78,6 +84,23 @@ def most_recent_data(target, time_interval):
 
     return (volume, change)
 
+def moving_5min_data(target):
+    
+    candles = client.get_klines(symbol=target, interval= Client.KLINE_INTERVAL_1MINUTE,limit = 5)
+
+    open_ = float(candles[0][1])
+    close = float(candles[4][4])
+    change = (close - open_)/open_ * 100
+
+    total_vol = 0.0
+
+    for candle in candles:
+        total_vol += float(candle[5])
+
+    return (total_vol, change)
+    
+    
+
 def moving_24h_data(target):
     data = client.get_ticker(symbol = target)
 
@@ -98,6 +121,8 @@ def all_in(target):
     else:
         print("Tried to buy " + str(quantity_) + " " + target + " @ " + str(market_price))
 
+    print("==================================================")
+
 def all_out(target):
     
     balance = float(client.get_asset_balance(asset='BTC')["free"])
@@ -109,6 +134,8 @@ def all_out(target):
         print("Sold " + str(quantity_) + " " + target + " @ " + str(market_price))
     else:
         print("Tried to sell " + str(quantity_) + " " + target + " @ " + str(market_price))
+
+    print("==================================================")
     
 if __name__ == '__main__':
     coin1 = 'BTC'
